@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>双色球 ¥2 概率实验室 · 3 分钟新手试玩</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --bg-canvas: #fafafa;
+      --grid-dot: rgba(15, 23, 42, 0.075);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+      background-color: var(--bg-canvas);
+      background-image:
+        radial-gradient(60% 45% at 12% 0%, rgba(225, 29, 72, 0.065) 0%, transparent 70%),
+        radial-gradient(55% 45% at 88% 0%, rgba(37, 99, 235, 0.07) 0%, transparent 70%),
+        radial-gradient(var(--grid-dot) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 20px 20px;
+      color: #0f172a;
+      padding-bottom: 76px;
+    }
+    @media (min-width: 1024px) {
+      body { padding-bottom: 0; }
+    }
+    .mono-num {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 真实 3D 正圆形球体材质 */
+    .sphere-3d {
+      aspect-ratio: 1 / 1;
+      border-radius: 9999px;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease, filter 0.18s ease;
+      user-select: none;
+    }
+    .sphere-3d:active:not(:disabled) {
+      transform: scale(0.9);
+    }
+    .sphere-pearl {
+      background: radial-gradient(circle at 32% 28%, #ffffff 0%, #f1f5f9 55%, #cbd5e1 100%);
+      color: #334155;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      box-shadow: 0 3px 6px rgba(15, 23, 42, 0.08), inset 0 -2px 4px rgba(15, 23, 42, 0.08);
+    }
+    .sphere-pearl:hover:not(:disabled) {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 6px 12px rgba(15, 23, 42, 0.12), inset 0 -2px 4px rgba(15, 23, 42, 0.08);
+    }
+    .sphere-red {
+      background: radial-gradient(circle at 32% 26%, #fda4af 0%, #e11d48 45%, #9f1239 100%);
+      color: #ffffff;
+      border: 1px solid rgba(159, 18, 57, 0.4);
+      box-shadow: 0 6px 14px rgba(225, 29, 72, 0.34), inset 0 -3px 6px rgba(88, 28, 135, 0.25), inset 0 2px 3px rgba(255, 255, 255, 0.45);
+      animation: jellyPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .sphere-blue {
+      background: radial-gradient(circle at 32% 26%, #93c5fd 0%, #2563eb 45%, #1e3a8a 100%);
+      color: #ffffff;
+      border: 1px solid rgba(30, 58, 138, 0.4);
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.34), inset 0 -3px 6px rgba(15, 23, 42, 0.3), inset 0 2px 3px rgba(255, 255, 255, 0.45);
+      animation: jellyPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .sphere-win-ring {
+      box-shadow: 0 0 0 3px #f59e0b, 0 0 18px rgba(245, 158, 11, 0.65);
+      animation: winPulse 1.1s ease-in-out infinite;
+    }
+
+    @keyframes jellyPop {
+      0% { transform: scale(0.82); }
+      60% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    @keyframes winPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.07); }
+    }
+
+    /* 镜面扫光按钮 */
+    .specular-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    .specular-btn::after {
+      content: "";
+      position: absolute;
+      top: 0; left: -120%;
+      width: 60%; height: 100%;
+      background: linear-gradient(115deg, transparent, rgba(255,255,255,0.32), transparent);
+      transition: left 0.55s ease;
+    }
+    .specular-btn:hover:not(:disabled)::after {
+      left: 140%;
+    }
+
+    /* 卡片聚光灯与悬浮质感 */
+    .lab-card {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .lab-card-hover:hover {
+      transform: translateY(-2px);
+      border-color: rgba(15, 23, 42, 0.16);
+      box-shadow: 0 12px 28px -12px rgba(15, 23, 42, 0.14);
+    }
+
+    /* Holo 全息倾斜战绩卡 */
+    .holo-card {
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.12s ease-out;
+      overflow: hidden;
+    }
+    .holo-sheen {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.28;
+      background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.65), transparent 55%);
+      mix-blend-mode: overlay;
+    }
+
+    /* 点击星火粒子层 */
+    #spark-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 60;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <canvas id="spark-canvas"></canvas>
+
+  <!-- 顶部导航栏 -->
+  <header class="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-200/80">
+    <div class="max-w-6xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-slate-950 text-white flex items-center justify-center font-extrabold text-xs mono-num shadow-sm border border-slate-800">
+          6+1
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-base font-extrabold tracking-tight text-slate-950">双色球概率实验室</h1>
+            <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 mono-num">EXP // 1:17,721,088</span>
+          </div>
+          <p class="text-[11px] text-slate-500 hidden sm:block">¥2 宇宙分支实验 · 纯虚拟科普 · 不涉及真实交易</p>
+        </div>
+      </div>
+
+      <!-- 流体胶囊模式切换 -->
+      <nav class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-semibold">
+        <button id="nav-tab-story" type="button" class="px-3 py-1.5 rounded-lg bg-white text-slate-950 shadow-xs transition">
+          1. 双色球规则
+        </button>
+        <button id="nav-tab-play" type="button" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-950 transition">
+          2. 模拟试玩
+        </button>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 bg-amber-50/90 border border-amber-200 rounded-full pl-3 pr-1.5 py-1">
+          <span class="text-[11px] font-semibold text-amber-800">体验金</span>
+          <span id="wallet-balance" class="text-sm font-extrabold text-amber-950 mono-num">100</span>
+          <span class="text-[11px] text-amber-700">币</span>
+          <button id="btn-refill-wallet" type="button" class="ml-1 px-2.5 py-0.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold transition">
+            免费补币
+          </button>
+        </div>
+
+        <button id="btn-sound-toggle" type="button" title="切换音效" class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition">
+          <i data-lucide="volume-2" class="w-4 h-4"></i>
+        </button>
+        <button id="btn-open-wiki" type="button" class="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition">
+          术语百科
+        </button>
+      </div>
+    </div>
+
+    <!-- 进度条 -->
+    <div class="border-t border-slate-100 bg-slate-50/70">
+      <div class="max-w-6xl mx-auto px-4 py-1.5 flex items-center justify-between gap-2 overflow-x-auto text-[11px]">
+        <div class="flex items-center gap-2">
+          <button type="button" data-play-step="0" id="step-pill-1" class="flex items-center gap-1.5 font-semibold text-rose-600 whitespace-nowrap">
+            <span class="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] mono-num">1</span>
+            <span>选 6 红 + 1 蓝</span>
+          </button>
+          <span class="text-slate-300">→</span>
+          <button type="button" data-play-step="1" id="step-pill-2" class="flex items-center gap-1.5 font-medium text-slate-500 whitespace-nowrap">
+            <span class="w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] mono-num">2</span>
+            <span>亮灯看奖级</span>
+          </button>
+          <span class="text-slate-300">→</span>
+          <button type="button" data-play-step="2" id="step-pill-3" class="flex items-center gap-1.5 font-medium text-slate-500 whitespace-nowrap">
+            <span class="w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] mono-num">3</span>
+            <span>水晶球摇奖</span>
+          </button>
+          <span class="text-slate-300">→</span>
+          <button type="button" data-play-step="3" id="step-pill-4" class="flex items-center gap-1.5 font-medium text-slate-500 whitespace-nowrap">
+            <span class="w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] mono-num">4</span>
+            <span>百期概率实验</span>
+          </button>
+        </div>
+        <button id="btn-skip-story" type="button" class="shrink-0 text-[11px] font-semibold text-blue-600 hover:text-blue-800 whitespace-nowrap">
+          跳过教程，直接试玩 →
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div id="toast-container" class="fixed top-24 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm"></div>
+
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-5 space-y-6">
+
+    <!-- ===================================================================== -->
+    <!-- 视图 A：¥2 宇宙分支实验（渐进式故事关卡） -->
+    <!-- ===================================================================== -->
+    <section id="view-story" class="space-y-5">
+      <!-- 可关闭破冰条 -->
+      <div id="onboarding-banner" class="bg-slate-950 text-white rounded-2xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800">
+        <div class="space-y-1">
+          <div class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 mono-num">
+            <span>MISSION // ¥2 宇宙分支实验</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            花 90 秒完成下面 3 个微型互动实验，看懂双色球怎么玩、宇宙级中奖概率有多小，再领 100 体验金上场实战。
+          </p>
+        </div>
+        <button id="btn-dismiss-onboarding" type="button" class="shrink-0 self-start sm:self-center px-4 py-2 rounded-xl bg-white text-slate-950 hover:bg-slate-100 text-xs font-bold transition">
+          开始实验
+        </button>
+      </div>
+
+      <!-- 三幕渐进式故事卡片 -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- 第 1 幕：点亮蓝球 -->
+        <article id="story-act-1" class="lab-card lab-card-hover rounded-2xl p-5 flex flex-col justify-between gap-4 border-t-4 border-t-blue-600">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-blue-600 mono-num">ACT 01 // 起点</span>
+              <span id="act1-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold">待点亮</span>
+            </div>
+            <h2 class="text-base font-extrabold text-slate-950">路过彩票店的 ¥2</h2>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              假设你手里只有 <strong>¥2</strong>，面前有 1,772 万条平行宇宙。双色球由 <strong class="text-rose-600">6 个红球(1–33)</strong> + <strong class="text-blue-600">1 个蓝球(1–16)</strong> 组成。先试着点亮下面这颗 <strong>08 号蓝球</strong>，看看最容易触发的“保底时空”：
+            </p>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+              <button id="btn-act1-blue" type="button" class="sphere-3d sphere-pearl w-12 h-12 text-sm font-extrabold mono-num shrink-0">
+                08
+              </button>
+              <div id="act1-feedback" class="text-xs text-slate-500 leading-snug">
+                点击左侧 08 号球体，触发六等奖模拟反馈
+              </div>
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-400 mono-num">只要蒙中 1 蓝（1/16 概率）= 5 元六等奖</div>
+        </article>
+
+        <!-- 第 2 幕：宇宙概率尺度 -->
+        <article id="story-act-2" class="lab-card rounded-2xl p-5 flex flex-col justify-between gap-4 border-t-4 border-t-rose-500 opacity-60 transition">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-rose-600 mono-num">ACT 02 // 尺度</span>
+              <span id="act2-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-semibold">完成第 1 幕解锁</span>
+            </div>
+            <h2 class="text-base font-extrabold text-slate-950">1,772 万分之一有多小？</h2>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              拨动下面的<strong>概率探针</strong>，把抽象的分母翻译成宇宙天文事件，感受每个奖级的真实难度：
+            </p>
+            <div class="space-y-2">
+              <input id="act2-probe-slider" type="range" min="1" max="6" value="6" disabled class="w-full accent-rose-600 cursor-pointer" />
+              <div id="act2-probe-readout" class="p-3 rounded-xl bg-slate-950 text-white text-xs space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-amber-300">六等奖（仅中 1 蓝）</span>
+                  <span class="mono-num text-slate-300">1 : 16.9</span>
+                </div>
+                <p class="text-slate-300 leading-relaxed">相当于在太阳系 16 颗大型球状天体里，闭眼盲摸恰好摸到地球。</p>
+              </div>
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-400 mono-num">拖动滑块探索一至六等奖宇宙类比</div>
+        </article>
+
+        <!-- 第 3 幕：包号加速器真相 -->
+        <article id="story-act-3" class="lab-card rounded-2xl p-5 flex flex-col justify-between gap-4 border-t-4 border-t-amber-500 opacity-60 transition">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-amber-600 mono-num">ACT 03 // 反转</span>
+              <span id="act3-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-semibold">完成第 2 幕解锁</span>
+            </div>
+            <h2 class="text-base font-extrabold text-slate-950">为什么会有“复式 / 胆拖”？</h2>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              老玩家常说多选几个红球能“包号”。拖动滑块看看选 6–10 个红球时注数与花费的暴涨真相：
+            </p>
+            <div class="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-2">
+              <div class="flex items-center justify-between text-xs font-bold text-slate-800">
+                <span>红球选择数量：<span id="act3-red-num" class="mono-num text-rose-600">6</span> 个</span>
+                <span class="mono-num text-amber-900"><span id="act3-bets">1</span> 注 · ¥<span id="act3-cost">2</span></span>
+              </div>
+              <input id="act3-compound-slider" type="range" min="6" max="10" value="6" disabled class="w-full accent-amber-500 cursor-pointer" />
+              <p class="text-[11px] text-slate-600">单注中奖率不变，只是同时买下了多组单式票。</p>
+            </div>
+          </div>
+          <button id="btn-enter-lab" type="button" class="specular-btn w-full py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold transition">
+            看懂了，领 100 体验金进入试玩盘 →
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 视图 B：4 步侧滑零下滑试玩工作台 -->
+    <!-- ===================================================================== -->
+    <section id="view-play" class="hidden space-y-4">
+      <!-- 侧滑控制条：指示器 + 左右切换 -->
+      <div class="flex items-center justify-between gap-2 bg-white/85 backdrop-blur border border-slate-200 rounded-2xl px-4 py-2.5 shadow-xs">
+        <button id="btn-prev-step" type="button" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 disabled:opacity-35 disabled:cursor-not-allowed transition">
+          <span>← 上一步</span>
+        </button>
+        <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <span id="carousel-step-label" class="mono-num">第 1 / 4 步 · 选 6 红 + 1 蓝</span>
+          <div class="hidden sm:flex items-center gap-1.5 ml-2">
+            <span data-dot="0" class="w-2 h-2 rounded-full bg-rose-600 transition"></span>
+            <span data-dot="1" class="w-2 h-2 rounded-full bg-slate-300 transition"></span>
+            <span data-dot="2" class="w-2 h-2 rounded-full bg-slate-300 transition"></span>
+            <span data-dot="3" class="w-2 h-2 rounded-full bg-slate-300 transition"></span>
+          </div>
+        </div>
+        <button id="btn-next-step" type="button" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold disabled:opacity-35 disabled:cursor-not-allowed transition">
+          <span>下一步 →</span>
+        </button>
+      </div>
+
+      <!-- 侧滑视口容器 -->
+      <div id="play-carousel-viewport" class="overflow-hidden rounded-2xl">
+        <div id="play-carousel-track" class="flex transition-transform duration-300 ease-out" style="transform: translateX(0%);">
+
+          <!-- 第 1 步：选 6 红 + 1 蓝 -->
+          <div class="w-full shrink-0">
+            <section class="lab-card rounded-2xl p-4 sm:p-6 space-y-5">
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                <div>
+                  <h2 class="text-base font-extrabold text-slate-950">第 1 步：选出你的“6+1”幸运球</h2>
+                  <p id="demo-banner-hint" class="text-xs text-slate-500 mt-0.5">当前为新手单式模式（点击正圆 3D 球体即可选中或取消，支持左右侧滑切换步骤）</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="btn-quick-pick" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-white text-xs font-semibold transition">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>手气不错（机选）</span>
+                  </button>
+                  <button id="btn-clear-board" type="button" class="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition">
+                    清空
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div class="lg:col-span-7 space-y-2.5">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-rose-600 flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+                      红球区（01 - 33）
+                    </span>
+                    <span id="red-count-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 mono-num">
+                      已选 0 / 6
+                    </span>
+                  </div>
+                  <div id="red-ball-grid" class="grid grid-cols-7 sm:grid-cols-9 md:grid-cols-11 gap-2 place-items-center"></div>
+                </div>
+
+                <div class="lg:col-span-5 space-y-4 lg:border-l lg:border-slate-100 lg:pl-6">
+                  <div class="space-y-2.5">
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-bold text-blue-600 flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                        蓝球区（01 - 16）
+                      </span>
+                      <span id="blue-count-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 mono-num">
+                        已选 0 / 1
+                      </span>
+                    </div>
+                    <div id="blue-ball-grid" class="grid grid-cols-8 sm:grid-cols-8 gap-2 place-items-center"></div>
+                  </div>
+
+                  <div class="pt-3 border-t border-slate-100 flex flex-wrap gap-2">
+                    <button type="button" data-goto-step="1" class="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition">
+                      先看亮灯奖级 →
+                    </button>
+                    <button type="button" data-goto-step="2" class="specular-btn flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-rose-600 to-blue-600 text-white text-xs font-bold transition">
+                      直接去水晶球开奖 →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- 第 2 步：亮灯看奖级 -->
+          <div class="w-full shrink-0">
+            <section class="lab-card rounded-2xl p-5 sm:p-6 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                <div>
+                  <h2 class="text-base font-extrabold text-slate-950">第 2 步：点任意奖级看“怎么算中奖”</h2>
+                  <p class="text-xs text-slate-500 mt-0.5">悬停或点击右侧奖级卡片，左侧模拟盘实时亮灯演示命中组合</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button id="btn-clear-demo" type="button" class="hidden text-xs font-bold text-blue-600 hover:underline">
+                    恢复我的选号
+                  </button>
+                  <button type="button" data-goto-step="2" class="specular-btn px-4 py-2 rounded-xl bg-slate-950 text-white text-xs font-bold transition">
+                    看懂了，去摇奖 →
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                <div class="lg:col-span-5 p-4 rounded-2xl bg-slate-950 text-white space-y-3">
+                  <div class="text-xs font-bold text-amber-300 mono-num">实时亮灯演示区</div>
+                  <div id="demo-stage-explain" class="text-xs text-slate-300 leading-relaxed">
+                    点击或悬停右侧任意奖级，即可直观看到需要命中几个红球、几个蓝球。
+                  </div>
+                  <div id="demo-stage-balls" class="flex flex-wrap items-center gap-2 pt-1 min-h-[44px]"></div>
+                </div>
+
+                <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div class="space-y-2">
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">保底回血小奖</div>
+                    <div id="prize-group-low" class="space-y-2"></div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-rose-700">梦想大奖</div>
+                    <div id="prize-group-high" class="space-y-2"></div>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-400">注：每注只有一次中奖机会，按最高命中奖级结算，不能兼中兼得。</p>
+            </section>
+          </div>
+
+          <!-- 第 3 步：水晶球摇奖 -->
+          <div class="w-full shrink-0">
+            <section class="rounded-2xl bg-slate-950 text-white p-5 sm:p-6 shadow-xl border border-slate-800 space-y-5">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <h2 class="text-sm font-bold tracking-wider uppercase text-slate-200 mono-num">第 3 步 · Crystalized Ball 摇奖核心</h2>
+                </div>
+                <button id="btn-copy-share" type="button" class="inline-flex items-center gap-1 text-xs font-semibold text-slate-300 hover:text-white transition">
+                  <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                  <span>分享这组号</span>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                <div class="lg:col-span-5 flex flex-col items-center justify-center py-2">
+                  <canvas id="crystal-ball-canvas" width="220" height="220" class="w-44 h-44 cursor-pointer touch-none"></canvas>
+                  <p class="text-[11px] text-slate-400 mt-1">轻触或划过水晶球可搅动随机粒子</p>
+                </div>
+
+                <div class="lg:col-span-7 space-y-4">
+                  <div class="space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>你当前的虚拟彩票（升序）：</span>
+                      <button type="button" data-goto-step="0" class="text-sky-400 hover:underline">返回改号</button>
+                    </div>
+                    <div id="ticket-preview-slots" class="flex flex-wrap items-center gap-1.5 p-3 rounded-xl bg-slate-900/90 border border-slate-800 min-h-[54px]"></div>
+                  </div>
+
+                  <button id="btn-start-draw" type="button" disabled class="specular-btn w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-blue-600 text-white font-bold text-sm shadow-lg hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2">
+                    <i data-lucide="play-circle" class="w-4 h-4"></i>
+                    <span id="btn-start-draw-text">还差 6 个红球、1 个蓝球</span>
+                  </button>
+
+                  <div id="draw-stage-panel" class="hidden rounded-xl bg-slate-900 border border-slate-700/80 p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                      <span id="draw-stage-title" class="text-xs font-bold text-amber-300">正在聚能摇奖...</span>
+                      <button id="btn-skip-draw" type="button" class="text-xs text-slate-300 hover:text-white underline">跳过动画</button>
+                    </div>
+                    <div id="draw-balls-row" class="flex flex-wrap items-center gap-2 min-h-[40px]"></div>
+                    <div id="draw-result-box" class="hidden pt-2.5 border-t border-slate-800 space-y-2.5">
+                      <div id="draw-hit-translation" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-800 text-xs font-bold text-amber-300 mono-num"></div>
+                      <div id="draw-result-headline" class="text-sm font-bold"></div>
+                      <p id="draw-result-sub" class="text-xs text-slate-300"></p>
+                      <div class="flex flex-wrap gap-2 pt-1">
+                        <button id="btn-batch-50-inline" type="button" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold transition">
+                          用这组号连抽 50 期 →
+                        </button>
+                        <button id="btn-batch-100-inline" type="button" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition">
+                          连抽 100 期测概率 →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- 第 4 步：百期概率实验 & Holo 战绩卡 -->
+          <div class="w-full shrink-0">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              <section class="lg:col-span-7 lab-card rounded-2xl p-5 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 class="text-base font-extrabold text-slate-950">第 4 步 · 百期概率实验室</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">毫秒级跑完多期模拟，生成 Holo 全息战绩卡（余额不足自动开启免费沙盒）</p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button id="btn-batch-50" type="button" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-700 transition">
+                      连抽 50 期
+                    </button>
+                    <button id="btn-batch-100" type="button" class="specular-btn px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold transition">
+                      连抽 100 期
+                    </button>
+                  </div>
+                </div>
+
+                <div id="batch-result-empty" class="rounded-xl bg-slate-50 border border-dashed border-slate-200 p-6 text-center text-xs text-slate-500">
+                  点击上方“连抽 50 期 / 100 期”按钮，立即生成你的 Holo 全息战绩卡。
+                </div>
+
+                <div id="batch-result-panel" class="hidden space-y-4">
+                  <div id="batch-sandbox-badge" class="hidden text-xs font-medium px-3 py-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-200"></div>
+                  <div id="holo-card" class="holo-card rounded-2xl p-5 text-white bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 border border-slate-700 shadow-lg space-y-4">
+                    <div class="holo-sheen"></div>
+                    <div class="relative flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <div class="text-[11px] text-slate-400 mono-num">SSQ LAB // 实战战绩卡</div>
+                        <div id="holo-title-badge" class="text-base font-extrabold text-amber-300 mt-0.5">称号：5元慈善家</div>
+                      </div>
+                      <span id="holo-roi-pill" class="px-2.5 py-1 rounded-full text-xs font-bold bg-white/10 mono-num">回报率 0%</span>
+                    </div>
+                    <div class="relative grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                        <div class="text-[11px] text-slate-400">模拟期数 / 投入</div>
+                        <div id="batch-stat-cost" class="text-sm font-extrabold text-white mt-0.5 mono-num"></div>
+                      </div>
+                      <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
+                        <div class="text-[11px] text-emerald-300">累计模拟奖金</div>
+                        <div id="batch-stat-prize" class="text-sm font-extrabold text-emerald-300 mt-0.5 mono-num"></div>
+                      </div>
+                      <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                        <div class="text-[11px] text-slate-400">模拟净盈亏</div>
+                        <div id="batch-stat-net" class="text-sm font-extrabold mt-0.5 mono-num"></div>
+                      </div>
+                      <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/20">
+                        <div class="text-[11px] text-amber-300">累计中奖次数</div>
+                        <div id="batch-stat-wins" class="text-sm font-extrabold text-amber-300 mt-0.5 mono-num"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="batch-distribution-bars" class="space-y-2"></div>
+                  <div class="p-3 rounded-xl bg-slate-950 text-slate-300 text-xs leading-relaxed">
+                    💡 <strong class="text-amber-300">理性概率提示：</strong>双色球一等奖理论概率为 <strong class="text-white mono-num">1 / 17,721,088</strong>。把彩票当作 ¥2 的公益与小期待，才是最健康的打开方式。
+                  </div>
+                </div>
+              </section>
+
+              <section class="lg:col-span-5 lab-card rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h2 class="text-sm font-extrabold text-slate-950">最近试玩记录（最多 20 条）</h2>
+                  <button id="btn-clear-history" type="button" class="text-xs text-slate-400 hover:text-rose-600 transition">清空记录</button>
+                </div>
+                <div id="history-list" class="space-y-2 max-h-72 overflow-y-auto pr-1 text-xs">
+                  <div class="text-slate-400 py-8 text-center">暂无开奖记录，快去试玩第一把吧！</div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 手机端底部吸底开奖条 -->
+  <div id="mobile-sticky-bar" class="hidden lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3 shadow-lg">
+    <div class="text-xs">
+      <div class="font-bold text-slate-900">单式 ¥2（2 体验金）</div>
+      <div id="mobile-sticky-status" class="text-[11px] text-slate-500 mono-num">已选 0/6 红 · 0/1 蓝</div>
+    </div>
+    <button id="btn-mobile-draw" type="button" disabled class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-blue-600 text-white text-xs font-bold disabled:opacity-40 transition">
+      立即开奖
+    </button>
+  </div>
+
+  <!-- 术语小百科弹窗 -->
+  <div id="wiki-modal" class="hidden fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-extrabold text-slate-950">双色球新手术语小百科</h3>
+        <button id="btn-close-wiki" type="button" class="p-1 rounded-lg hover:bg-slate-100 text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-600 leading-relaxed">
+        <div class="p-3 rounded-xl bg-slate-50">
+          <strong class="text-slate-900">1. 单式投注（本实验室聚焦）：</strong>最基础的玩法，花 2 元选 6 个红球 + 1 个蓝球，新手只需掌握这一种。
+        </div>
+        <div class="p-3 rounded-xl bg-slate-50">
+          <strong class="text-slate-900">2. 为什么听过“复式”和“胆拖”？</strong>复式就是多选几个球（比如选 7 个红球会拆成 7 注，花费 14 元）来提高覆盖率；胆拖是指定几个“必出号（胆）”搭配“备选号（拖）”。新手前期完全不需要用。
+        </div>
+        <div class="p-3 rounded-xl bg-slate-50">
+          <strong class="text-slate-900">3. 现实开奖与公益金：</strong>现实中双色球每周二、四、日 21:15 开奖，每注 2 元中有 36%（0.72 元）进入社会公益金。
+        </div>
+      </div>
+      <button id="btn-close-wiki-bottom" type="button" class="w-full py-2.5 rounded-xl bg-slate-950 text-white text-xs font-bold hover:bg-slate-800 transition">
+        明白了，继续试玩
+      </button>
+    </div>
+  </div>
+
+  <footer class="border-t border-slate-200/80 bg-white/80 py-4 mt-6">
+    <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
+      纯虚拟规则科普工具 · 不涉及任何真实资金交易、代购或号码预测 · 多人少买、量力而行、理性购彩
+    </div>
+  </footer>
+
+  <script>
+    // =========================================================================
+    // 1. 数据层 (Data Layer)
+    // =========================================================================
+    const SSQ_CONFIG = {
+      redMin: 1, redMax: 33, redCount: 6,
+      blueMin: 1, blueMax: 16, blueCount: 1,
+      unitPrice: 2, initialWallet: 100,
+      publicWelfareRate: 0.36, maxHistory: 20,
+      cosmicAnalogies: {
+        1: { title: '一等奖（6红 + 1蓝）', odds: '1 : 17,721,088', text: '相当于百米级小行星恰好在你生日当天撞击地球。' },
+        2: { title: '二等奖（6红 + 0蓝）', odds: '1 : 1,181,406', text: '相当于在百万颗小行星带天体里盲抓出谷神星。' },
+        3: { title: '三等奖（5红 + 1蓝）', odds: '1 : 109,389', text: '相当于赶上银河系十万年一遇的双中子星并合奇观。' },
+        4: { title: '四等奖（5红 或 4红+1蓝）', odds: '1 : 2,303', text: '相当于在夜空 2,500 颗肉眼可见恒星中闭眼点中天狼星。' },
+        5: { title: '五等奖（4红 或 3红+1蓝）', odds: '1 : 129', text: '相当于在一年里随机挑一天，恰好撞上日食或月食天象。' },
+        6: { title: '六等奖（仅中 1 蓝即可）', odds: '1 : 16.9', text: '相当于在太阳系 16 颗大型球状天体里，闭眼盲摸恰好摸到地球。' }
+      },
+      prizeTiers: [
+        { id: 1, name: '一等奖', group: 'high', badge: '6红+1蓝', desc: '最高1000万(模拟500万)', payout: 5000000, isFloating: true, demoRed: [3, 9, 15, 21, 27, 32], demoBlue: 8, match: (r, b) => r === 6 && b === 1 },
+        { id: 2, name: '二等奖', group: 'high', badge: '6红+0蓝', desc: '最高500万(模拟20万)', payout: 200000, isFloating: true, demoRed: [3, 9, 15, 21, 27, 32], demoBlue: null, match: (r, b) => r === 6 && b === 0 },
+        { id: 3, name: '三等奖', group: 'high', badge: '5红+1蓝', desc: '固定奖金 3,000 元', payout: 3000, isFloating: false, demoRed: [3, 9, 15, 21, 27], demoBlue: 8, match: (r, b) => r === 5 && b === 1 },
+        { id: 4, name: '四等奖', group: 'low', badge: '5红或4红+1蓝', desc: '固定奖金 200 元', payout: 200, isFloating: false, demoRed: [3, 9, 15, 21], demoBlue: 8, match: (r, b) => r === 5 && b === 0 || r === 4 && b === 1 },
+        { id: 5, name: '五等奖', group: 'low', badge: '4红或3红+1蓝', desc: '固定奖金 10 元', payout: 10, isFloating: false, demoRed: [3, 9, 15], demoBlue: 8, match: (r, b) => r === 4 && b === 0 || r === 3 && b === 1 },
+        { id: 6, name: '六等奖', group: 'low', badge: '仅中1蓝即可', desc: '固定 5 元 (0+1/1+1/2+1)', payout: 5, isFloating: false, demoRed: [], demoBlue: 8, match: (r, b) => b === 1 && r <= 2 }
+      ]
+    };
+
+    const DataRepo = (() => {
+      const PREFIX = 'ssq_lab_v1_';
+      const memFallback = new Map();
+      function getRaw(key) {
+        try { return window.localStorage.getItem(PREFIX + key); }
+        catch (e) { return memFallback.has(key) ? memFallback.get(key) : null; }
+      }
+      function setRaw(key, val) {
+        memFallback.set(key, val);
+        try { window.localStorage.setItem(PREFIX + key, val); } catch (e) {}
+      }
+      return {
+        getWalletBalance() {
+          const raw = getRaw('wallet_balance');
+          if (raw === null) { setRaw('wallet_balance', String(SSQ_CONFIG.initialWallet)); return SSQ_CONFIG.initialWallet; }
+          const num = Number(raw);
+          return Number.isFinite(num) && num >= 0 ? num : SSQ_CONFIG.initialWallet;
+        },
+        saveWalletBalance(v) { setRaw('wallet_balance', String(v)); },
+        getHistory() {
+          const raw = getRaw('draw_history');
+          if (!raw) return [];
+          try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch (e) { return []; }
+        },
+        appendHistory(rec) {
+          const list = this.getHistory();
+          list.unshift(rec);
+          if (list.length > SSQ_CONFIG.maxHistory) list.length = SSQ_CONFIG.maxHistory;
+          setRaw('draw_history', JSON.stringify(list));
+          return list;
+        },
+        clearHistory() { setRaw('draw_history', '[]'); },
+        isOnboardingSeen() { return getRaw('onboarding_seen') === '1'; },
+        markOnboardingSeen() { setRaw('onboarding_seen', '1'); }
+      };
+    })();
+
+    // =========================================================================
+    // 2. 服务层 (Service Layer)
+    // =========================================================================
+    const LotteryRuleEngine = {
+      validateSingleBet(redArr, blueVal) {
+        const missingRed = Math.max(0, SSQ_CONFIG.redCount - redArr.length);
+        const missingBlue = blueVal === null ? 1 : 0;
+        return { valid: missingRed === 0 && missingBlue === 0, missingRed, missingBlue };
+      },
+      evaluatePrize(userRed, userBlue, drawRed, drawBlue) {
+        const redHits = userRed.filter(n => drawRed.includes(n));
+        const blueHit = userBlue === drawBlue;
+        const rCount = redHits.length;
+        const bCount = blueHit ? 1 : 0;
+        for (const tier of SSQ_CONFIG.prizeTiers) {
+          if (tier.match(rCount, bCount)) {
+            return { won: true, tier, payout: tier.payout, redHits, blueHit, rCount, bCount };
+          }
+        }
+        return { won: false, tier: null, payout: 0, redHits, blueHit, rCount, bCount };
+      },
+      comb(n, k) {
+        if (k > n || k < 0) return 0;
+        let res = 1;
+        for (let i = 1; i <= k; i++) res = (res * (n - i + 1)) / i;
+        return Math.round(res);
+      }
+    };
+
+    const CryptoDrawService = {
+      randomInt(maxExclusive) {
+        if (window.crypto && window.crypto.getRandomValues) {
+          const arr = new Uint32Array(1);
+          window.crypto.getRandomValues(arr);
+          return arr[0] % maxExclusive;
+        }
+        return Math.floor(Math.random() * maxExclusive);
+      },
+      drawPool(min, max, count) {
+        const pool = [];
+        for (let i = min; i <= max; i++) pool.push(i);
+        for (let i = pool.length - 1; i > 0; i--) {
+          const j = this.randomInt(i + 1);
+          [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        return pool.slice(0, count).sort((a, b) => a - b);
+      },
+      generateDraw() {
+        return {
+          red: this.drawPool(SSQ_CONFIG.redMin, SSQ_CONFIG.redMax, SSQ_CONFIG.redCount),
+          blue: this.drawPool(SSQ_CONFIG.blueMin, SSQ_CONFIG.blueMax, SSQ_CONFIG.blueCount)[0]
+        };
+      },
+      completePick(currentRed, currentBlue) {
+        let nextRed = [...currentRed];
+        let nextBlue = currentBlue;
+        if (nextRed.length === SSQ_CONFIG.redCount && nextBlue !== null) return this.generateDraw();
+        const available = [];
+        for (let i = SSQ_CONFIG.redMin; i <= SSQ_CONFIG.redMax; i++) {
+          if (!nextRed.includes(i)) available.push(i);
+        }
+        while (nextRed.length < SSQ_CONFIG.redCount && available.length > 0) {
+          nextRed.push(available.splice(this.randomInt(available.length), 1)[0]);
+        }
+        nextRed.sort((a, b) => a - b);
+        if (nextBlue === null) nextBlue = this.drawPool(SSQ_CONFIG.blueMin, SSQ_CONFIG.blueMax, 1)[0];
+        return { red: nextRed, blue: nextBlue };
+      }
+    };
+
+    const BatchSimulator = {
+      runBatch(userRed, userBlue, count) {
+        const safeCount = Math.min(100, Math.max(1, count));
+        const tierCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+        let totalPrize = 0, winCount = 0, bestTier = 99;
+        for (let i = 0; i < safeCount; i++) {
+          const draw = CryptoDrawService.generateDraw();
+          const res = LotteryRuleEngine.evaluatePrize(userRed, userBlue, draw.red, draw.blue);
+          if (res.won && res.tier) {
+            tierCounts[res.tier.id] += 1;
+            totalPrize += res.payout;
+            winCount += 1;
+            if (res.tier.id < bestTier) bestTier = res.tier.id;
+          }
+        }
+        const totalCost = safeCount * SSQ_CONFIG.unitPrice;
+        let title = '5元慈善家';
+        if (winCount === 0) title = '物理绝缘体';
+        else if (bestTier <= 4) title = '天选欧皇体验卡';
+        return {
+          count: safeCount, totalCost, totalPrize,
+          netProfit: totalPrize - totalCost,
+          roi: ((totalPrize / totalCost) * 100).toFixed(1),
+          winCount, tierCounts, title
+        };
+      }
+    };
+
+    const WalletService = {
+      getBalance: () => DataRepo.getWalletBalance(),
+      canAfford: amt => DataRepo.getWalletBalance() >= amt,
+      deduct: amt => { const n = Math.max(0, DataRepo.getWalletBalance() - amt); DataRepo.saveWalletBalance(n); return n; },
+      credit: amt => { const n = DataRepo.getWalletBalance() + amt; DataRepo.saveWalletBalance(n); return n; },
+      refill: () => { DataRepo.saveWalletBalance(SSQ_CONFIG.initialWallet); return SSQ_CONFIG.initialWallet; },
+      getPublicWelfarePerBet: () => (SSQ_CONFIG.unitPrice * SSQ_CONFIG.publicWelfareRate).toFixed(2)
+    };
+
+    // =========================================================================
+    // 3. 视觉动效引擎 (Click Spark & Crystalized Ball)
+    // =========================================================================
+    const SparkFx = (() => {
+      const canvas = document.getElementById('spark-canvas');
+      const ctx = canvas.getContext('2d');
+      let sparks = [];
+      let rafId = null;
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        sparks = sparks.filter(p => p.life > 0);
+        for (const p of sparks) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= 0.045;
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        if (sparks.length > 0) rafId = requestAnimationFrame(loop);
+        else rafId = null;
+      }
+
+      return {
+        burst(x, y, color) {
+          for (let i = 0; i < 12; i++) {
+            const angle = (Math.PI * 2 * i) / 12 + (Math.random() - 0.5) * 0.4;
+            const speed = 1.6 + Math.random() * 2.4;
+            sparks.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1, size: 1.8 + Math.random() * 1.5, color });
+          }
+          if (!rafId) rafId = requestAnimationFrame(loop);
+        }
+      };
+    })();
+
+    const CrystalBallFx = (() => {
+      const canvas = document.getElementById('crystal-ball-canvas');
+      const ctx = canvas.getContext('2d');
+      const particles = Array.from({ length: 34 }, (_, i) => ({
+        angle: (Math.PI * 2 * i) / 34,
+        radius: 18 + Math.random() * 58,
+        speed: (0.008 + Math.random() * 0.015) * (i % 2 === 0 ? 1 : -1),
+        size: 1.5 + Math.random() * 2,
+        color: i % 3 === 0 ? '#60a5fa' : i % 3 === 1 ? '#fb7185' : '#fcd34d'
+      }));
+      let boost = 0;
+
+      function stir() { boost = Math.min(2.6, boost + 1.2); }
+      canvas.addEventListener('mousemove', stir);
+      canvas.addEventListener('touchmove', stir, { passive: true });
+      canvas.addEventListener('click', stir);
+
+      function render() {
+        const w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2, R = 86;
+        ctx.clearRect(0, 0, w, h);
+
+        const isCharging = AppState.flowState === 'DRAWING';
+        const speedMult = isCharging ? 4.5 : 1 + boost;
+        boost = Math.max(0, boost * 0.96);
+
+        // 外发光
+        const glow = ctx.createRadialGradient(cx, cy, R * 0.4, cx, cy, R * 1.25);
+        glow.addColorStop(0, isCharging ? 'rgba(245, 158, 11, 0.28)' : 'rgba(59, 130, 246, 0.16)');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R * 1.25, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 玻璃球内胆
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.clip();
+
+        const bg = ctx.createRadialGradient(cx - 24, cy - 28, 8, cx, cy, R);
+        bg.addColorStop(0, '#1e293b');
+        bg.addColorStop(0.65, '#090d16');
+        bg.addColorStop(1, '#020617');
+        ctx.fillStyle = bg;
+        ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+
+        // 轨道微粒
+        for (const p of particles) {
+          p.angle += p.speed * speedMult;
+          const x = cx + Math.cos(p.angle) * p.radius;
+          const y = cy + Math.sin(p.angle * 1.15) * (p.radius * 0.85);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = isCharging ? 0.95 : 0.72;
+          ctx.beginPath();
+          ctx.arc(x, y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // 高光弧
+        ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R - 10, Math.PI * 1.12, Math.PI * 1.48);
+        ctx.stroke();
+        ctx.restore();
+
+        // 外圈描边
+        ctx.strokeStyle = isCharging ? 'rgba(251, 191, 36, 0.8)' : 'rgba(148, 163, 184, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.stroke();
+
+        requestAnimationFrame(render);
+      }
+      requestAnimationFrame(render);
+      return { stir };
+    })();
+
+    // =========================================================================
+    // 4. 编排层 (Orchestration Layer)
+    // =========================================================================
+    const SoundFx = (() => {
+      let enabled = true, ctx = null;
+      function playTone(freq, dur = 0.08, type = 'sine', vol = 0.07) {
+        if (!enabled) return;
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          if (!ctx) ctx = new AC();
+          if (ctx.state === 'suspended') ctx.resume();
+          const osc = ctx.createOscillator(), gain = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          gain.gain.setValueAtTime(vol, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(); osc.stop(ctx.currentTime + dur);
+        } catch (e) {}
+      }
+      return {
+        toggle: () => { enabled = !enabled; return enabled; },
+        tick: () => playTone(540, 0.05, 'triangle', 0.05),
+        reveal: () => playTone(680, 0.09, 'sine', 0.08),
+        win: () => { playTone(587, 0.1, 'triangle', 0.09); setTimeout(() => playTone(880, 0.18, 'triangle', 0.09), 90); }
+      };
+    })();
+
+    const AppState = {
+      activeTab: 'story', // story | play
+      playStep: 0, // 0..3
+      flowState: 'SELECTING',
+      selectedRed: [],
+      selectedBlue: null,
+      activeDemoTierId: null,
+      snapshot: null,
+      drawTimer: null,
+      currentDrawResult: null,
+      act1Done: false,
+      act2Done: false
+    };
+
+    const DemoHighlightFlow = {
+      activate(tierId) {
+        if (AppState.flowState === 'DRAWING') return;
+        const tier = SSQ_CONFIG.prizeTiers.find(t => t.id === tierId);
+        if (!tier) return;
+        if (!AppState.snapshot) {
+          AppState.snapshot = { red: [...AppState.selectedRed], blue: AppState.selectedBlue };
+        }
+        AppState.activeDemoTierId = tierId;
+        AppState.selectedRed = [...tier.demoRed];
+        AppState.selectedBlue = tier.demoBlue;
+        UI.renderDemoStage(tier);
+        // 4 步侧滑控制与手势监听
+      document.getElementById('btn-prev-step').addEventListener('click', () => TrialFlowMachine.goToPlayStep(AppState.playStep - 1));
+      document.getElementById('btn-next-step').addEventListener('click', () => TrialFlowMachine.goToPlayStep(AppState.playStep + 1));
+      document.querySelectorAll('[data-play-step]').forEach(btn => {
+        btn.addEventListener('click', () => TrialFlowMachine.goToPlayStep(Number(btn.dataset.playStep)));
+      });
+      document.querySelectorAll('[data-goto-step]').forEach(btn => {
+        btn.addEventListener('click', () => TrialFlowMachine.goToPlayStep(Number(btn.dataset.gotoStep)));
+      });
+
+      let swipeStartX = 0, swipeStartY = 0, swipeIgnore = false;
+      const carouselViewport = document.getElementById('play-carousel-viewport');
+      carouselViewport.addEventListener('touchstart', e => {
+        if (!e.touches[0]) return;
+        swipeIgnore = Boolean(e.target.closest('input[type="range"], canvas'));
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+      }, { passive: true });
+      carouselViewport.addEventListener('touchend', e => {
+        if (swipeIgnore || !e.changedTouches[0]) return;
+        const dx = e.changedTouches[0].clientX - swipeStartX;
+        const dy = e.changedTouches[0].clientY - swipeStartY;
+        if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+          if (dx < 0) TrialFlowMachine.goToPlayStep(AppState.playStep + 1);
+          else TrialFlowMachine.goToPlayStep(AppState.playStep - 1);
+        }
+      }, { passive: true });
+      TrialFlowMachine.goToPlayStep(0);
+      if (AppState.activeTab === 'story') TrialFlowMachine.switchTab('story');
+      UI.renderAll();
+        UI.markProgress(2);
+      },
+      restore() {
+        if (!AppState.snapshot) return;
+        AppState.selectedRed = [...AppState.snapshot.red];
+        AppState.selectedBlue = AppState.snapshot.blue;
+        AppState.snapshot = null;
+        AppState.activeDemoTierId = null;
+        UI.renderDemoStage(null);
+        UI.renderAll();
+      }
+    };
+
+    const TrialFlowMachine = {
+      goToPlayStep(stepIdx) {
+        const clamped = Math.max(0, Math.min(3, stepIdx));
+        AppState.playStep = clamped;
+        if (AppState.activeTab !== 'play') this.switchTab('play');
+        const track = document.getElementById('play-carousel-track');
+        if (track) track.style.transform = `translateX(-${clamped * 100}%)`;
+        const names = ['选 6 红 + 1 蓝', '亮灯看奖级', '水晶球摇奖', '百期概率实验'];
+        const label = document.getElementById('carousel-step-label');
+        if (label) label.textContent = `第 ${clamped + 1} / 4 步 · ${names[clamped]}`;
+        document.getElementById('btn-prev-step').disabled = clamped === 0;
+        document.getElementById('btn-next-step').disabled = clamped === 3;
+        document.querySelectorAll('[data-dot]').forEach(d => {
+          const idx = Number(d.dataset.dot);
+          d.className = `w-2 h-2 rounded-full transition ${idx === clamped ? 'bg-rose-600 scale-125' : 'bg-slate-300'}`;
+        });
+        UI.markProgress(clamped + 1);
+      },
+      switchTab(tab) {
+        AppState.activeTab = tab;
+        const storyView = document.getElementById('view-story');
+        const playView = document.getElementById('view-play');
+        const tabStory = document.getElementById('nav-tab-story');
+        const tabPlay = document.getElementById('nav-tab-play');
+        const mobileBar = document.getElementById('mobile-sticky-bar');
+
+        if (tab === 'story') {
+          storyView.classList.remove('hidden');
+          playView.classList.add('hidden');
+          mobileBar.classList.add('hidden');
+          tabStory.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-950 shadow-xs transition';
+          tabPlay.className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-950 transition';
+        } else {
+          storyView.classList.add('hidden');
+          playView.classList.remove('hidden');
+          mobileBar.classList.remove('hidden');
+          tabPlay.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-950 shadow-xs transition';
+          tabStory.className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-950 transition';
+        }
+      },
+      toggleRed(num, ev) {
+        if (AppState.flowState === 'DRAWING') return;
+        if (AppState.snapshot) DemoHighlightFlow.restore();
+        const idx = AppState.selectedRed.indexOf(num);
+        if (idx !== -1) {
+          AppState.selectedRed.splice(idx, 1);
+          SoundFx.tick();
+        } else {
+          if (AppState.selectedRed.length >= SSQ_CONFIG.redCount) {
+            UI.toast('新手单式每次精选 6 个红球即可（点右上角“术语百科”了解复式）', 'amber');
+            return;
+          }
+          AppState.selectedRed.push(num);
+          AppState.selectedRed.sort((a, b) => a - b);
+          SoundFx.tick();
+          if (ev) SparkFx.burst(ev.clientX, ev.clientY, '#e11d48');
+        }
+        AppState.flowState = 'SELECTING';
+        UI.renderAll();
+      },
+      toggleBlue(num, ev) {
+        if (AppState.flowState === 'DRAWING') return;
+        if (AppState.snapshot) DemoHighlightFlow.restore();
+        if (AppState.selectedBlue === num) {
+          AppState.selectedBlue = null;
+        } else {
+          AppState.selectedBlue = num;
+          if (ev) SparkFx.burst(ev.clientX, ev.clientY, '#2563eb');
+        }
+        SoundFx.tick();
+        AppState.flowState = 'SELECTING';
+        UI.renderAll();
+      },
+      quickPick() {
+        if (AppState.flowState === 'DRAWING') return;
+        if (AppState.snapshot) DemoHighlightFlow.restore();
+        const picked = CryptoDrawService.completePick(AppState.selectedRed, AppState.selectedBlue);
+        AppState.selectedRed = picked.red;
+        AppState.selectedBlue = picked.blue;
+        AppState.flowState = 'SELECTING';
+        SoundFx.tick();
+        UI.renderAll();
+      },
+      clearBoard() {
+        if (AppState.flowState === 'DRAWING') return;
+        AppState.snapshot = null;
+        AppState.activeDemoTierId = null;
+        AppState.selectedRed = [];
+        AppState.selectedBlue = null;
+        AppState.flowState = 'SELECTING';
+        UI.renderAll();
+      },
+      startDraw() {
+        if (AppState.flowState === 'DRAWING') return;
+        if (AppState.snapshot) DemoHighlightFlow.restore();
+        const check = LotteryRuleEngine.validateSingleBet(AppState.selectedRed, AppState.selectedBlue);
+        if (!check.valid) return;
+        if (!WalletService.canAfford(SSQ_CONFIG.unitPrice)) {
+          UI.toast('体验金不足 2 币，请点击顶部“免费补币”立即重置 100 币！', 'amber');
+          return;
+        }
+        WalletService.deduct(SSQ_CONFIG.unitPrice);
+        AppState.flowState = 'DRAWING';
+        AppState.currentDrawResult = CryptoDrawService.generateDraw();
+        CrystalBallFx.stir();
+        UI.renderAll();
+        UI.markProgress(3);
+        UI.startDrawAnimation(AppState.currentDrawResult, () => this.finishDraw());
+      },
+      skipDrawAnimation() {
+        if (AppState.flowState !== 'DRAWING') return;
+        if (AppState.drawTimer) { clearInterval(AppState.drawTimer); AppState.drawTimer = null; }
+        this.finishDraw();
+      },
+      finishDraw() {
+        if (AppState.flowState !== 'DRAWING') return;
+        AppState.flowState = 'SETTLED';
+        const draw = AppState.currentDrawResult;
+        const evalRes = LotteryRuleEngine.evaluatePrize(AppState.selectedRed, AppState.selectedBlue, draw.red, draw.blue);
+        if (evalRes.won && evalRes.payout > 0) {
+          WalletService.credit(evalRes.payout);
+          SoundFx.win();
+          if (typeof window.confetti === 'function') {
+            window.confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
+          }
+        }
+        DataRepo.appendHistory({
+          time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+          userRed: [...AppState.selectedRed],
+          userBlue: AppState.selectedBlue,
+          drawRed: draw.red,
+          drawBlue: draw.blue,
+          won: evalRes.won,
+          tierName: evalRes.tier ? evalRes.tier.name : '未中奖',
+          payout: evalRes.payout
+        });
+        UI.renderDrawSettlement(draw, evalRes);
+        UI.renderWallet();
+        UI.renderHistory();
+        UI.renderBoardAndPreview();
+      }
+    };
+
+    const BatchTestFlow = {
+      run(count) {
+        if (AppState.flowState === 'DRAWING') return;
+        if (AppState.snapshot) DemoHighlightFlow.restore();
+        const check = LotteryRuleEngine.validateSingleBet(AppState.selectedRed, AppState.selectedBlue);
+        if (!check.valid) {
+          UI.toast('请先选满 6 红 + 1 蓝（或点“手气不错”）再运行概率实验', 'amber');
+          return;
+        }
+        const totalCost = count * SSQ_CONFIG.unitPrice;
+        let sandboxMode = false;
+        if (WalletService.canAfford(totalCost)) WalletService.deduct(totalCost);
+        else sandboxMode = true;
+
+        const report = BatchSimulator.runBatch(AppState.selectedRed, AppState.selectedBlue, count);
+        if (!sandboxMode && report.totalPrize > 0) WalletService.credit(report.totalPrize);
+
+        UI.renderWallet();
+        UI.renderBatchReport({ ...report, sandboxMode });
+        TrialFlowMachine.goToPlayStep(3);
+        UI.markProgress(4);
+      }
+    };
+
+    // =========================================================================
+    // 5. 接入层 (Access Layer) & UI 渲染
+    // =========================================================================
+    const UrlParamParser = {
+      parseFromLocation() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const rStr = params.get('r'), bStr = params.get('b');
+          if (!rStr || !bStr) return null;
+          const reds = rStr.split(',').map(s => Number(s.trim()));
+          const blue = Number(bStr.trim());
+          if (reds.length !== SSQ_CONFIG.redCount || !Number.isInteger(blue) || blue < 1 || blue > 16) return null;
+          const uniq = new Set(reds);
+          if (uniq.size !== SSQ_CONFIG.redCount) return null;
+          for (const n of uniq) if (!Number.isInteger(n) || n < 1 || n > 33) return null;
+          return { red: Array.from(uniq).sort((a, b) => a - b), blue };
+        } catch (e) { return null; }
+      }
+    };
+
+    const pad2 = n => String(n).padStart(2, '0');
+
+    const UI = {
+      toast(msg, tone = 'slate') {
+        const container = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        const cls = tone === 'amber' ? 'bg-amber-950 text-amber-50 border-amber-700' : tone === 'emerald' ? 'bg-emerald-950 text-emerald-50 border-emerald-700' : 'bg-slate-950 text-white border-slate-700';
+        el.className = `pointer-events-auto px-4 py-2.5 rounded-xl border shadow-lg text-xs font-medium transition-opacity duration-300 ${cls}`;
+        el.textContent = msg;
+        container.appendChild(el);
+        setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2800);
+      },
+      markProgress(stepNum) {
+        for (let i = 1; i <= 4; i++) {
+          const pill = document.getElementById(`step-pill-${i}`);
+          if (!pill) continue;
+          const badge = pill.querySelector('span:first-child');
+          if (i <= stepNum) {
+            pill.className = 'flex items-center gap-1.5 font-semibold text-rose-600 whitespace-nowrap';
+            badge.className = 'w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] mono-num';
+          } else {
+            pill.className = 'flex items-center gap-1.5 font-medium text-slate-500 whitespace-nowrap';
+            badge.className = 'w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] mono-num';
+          }
+        }
+      },
+      renderWallet() {
+        document.getElementById('wallet-balance').textContent = WalletService.getBalance();
+      },
+      renderBoardAndPreview() {
+        const isLocked = AppState.flowState === 'DRAWING';
+        const isDemo = AppState.activeDemoTierId !== null;
+        const hintEl = document.getElementById('demo-banner-hint');
+        const clearDemoBtn = document.getElementById('btn-clear-demo');
+
+        if (isDemo) {
+          const tier = SSQ_CONFIG.prizeTiers.find(t => t.id === AppState.activeDemoTierId);
+          hintEl.innerHTML = `<span class="text-blue-600 font-bold">正在亮灯演示「${tier.name}」命中效果</span>（移出或点恢复继续选号）`;
+          clearDemoBtn.classList.remove('hidden');
+        } else {
+          hintEl.textContent = '当前为新手单式模式（点击正圆 3D 球体即可选中或取消）';
+          clearDemoBtn.classList.add('hidden');
+        }
+
+        const redGrid = document.getElementById('red-ball-grid');
+        redGrid.innerHTML = '';
+        for (let i = 1; i <= 33; i++) {
+          const sel = AppState.selectedRed.includes(i);
+          const btn = document.createElement('button');
+          btn.type = 'button'; btn.disabled = isLocked; btn.textContent = pad2(i); btn.dataset.red = i;
+          btn.className = `sphere-3d w-9 h-9 sm:w-10 sm:h-10 text-xs font-extrabold mono-num ${sel ? 'sphere-red' : 'sphere-pearl'}`;
+          redGrid.appendChild(btn);
+        }
+
+        const blueGrid = document.getElementById('blue-ball-grid');
+        blueGrid.innerHTML = '';
+        for (let i = 1; i <= 16; i++) {
+          const sel = AppState.selectedBlue === i;
+          const btn = document.createElement('button');
+          btn.type = 'button'; btn.disabled = isLocked; btn.textContent = pad2(i); btn.dataset.blue = i;
+          btn.className = `sphere-3d w-9 h-9 sm:w-10 sm:h-10 text-xs font-extrabold mono-num ${sel ? 'sphere-blue' : 'sphere-pearl'}`;
+          blueGrid.appendChild(btn);
+        }
+
+        document.getElementById('red-count-badge').textContent = `已选 ${AppState.selectedRed.length} / 6`;
+        document.getElementById('blue-count-badge').textContent = `已选 ${AppState.selectedBlue !== null ? 1 : 0} / 1`;
+        document.getElementById('mobile-sticky-status').textContent = `已选 ${AppState.selectedRed.length}/6 红 · ${AppState.selectedBlue !== null ? 1 : 0}/1 蓝`;
+
+        const preview = document.getElementById('ticket-preview-slots');
+        preview.innerHTML = '';
+        for (let idx = 0; idx < 6; idx++) {
+          const val = AppState.selectedRed[idx];
+          const span = document.createElement('span');
+          span.className = val
+            ? 'sphere-3d sphere-red w-8 h-8 text-[11px] font-extrabold mono-num'
+            : 'w-8 h-8 rounded-full bg-slate-800 border border-dashed border-slate-600 text-slate-500 text-[10px] flex items-center justify-center';
+          span.textContent = val ? pad2(val) : '红';
+          preview.appendChild(span);
+        }
+        const plus = document.createElement('span');
+        plus.className = 'text-slate-500 font-bold text-xs px-0.5';
+        plus.textContent = '+';
+        preview.appendChild(plus);
+
+        const blueSpan = document.createElement('span');
+        blueSpan.className = AppState.selectedBlue !== null
+          ? 'sphere-3d sphere-blue w-8 h-8 text-[11px] font-extrabold mono-num'
+          : 'w-8 h-8 rounded-full bg-slate-800 border border-dashed border-slate-600 text-slate-500 text-[10px] flex items-center justify-center';
+        blueSpan.textContent = AppState.selectedBlue !== null ? pad2(AppState.selectedBlue) : '蓝';
+        preview.appendChild(blueSpan);
+
+        const drawBtn = document.getElementById('btn-start-draw');
+        const drawBtnText = document.getElementById('btn-start-draw-text');
+        const mobileBtn = document.getElementById('btn-mobile-draw');
+        const v = LotteryRuleEngine.validateSingleBet(AppState.selectedRed, AppState.selectedBlue);
+
+        if (isLocked) {
+          drawBtn.disabled = true; mobileBtn.disabled = true;
+          drawBtnText.textContent = '水晶球正在摇奖...';
+        } else if (isDemo) {
+          drawBtn.disabled = true; mobileBtn.disabled = true;
+          drawBtnText.textContent = '规则演示中（恢复选号后可开奖）';
+        } else if (!v.valid) {
+          drawBtn.disabled = true; mobileBtn.disabled = true;
+          const parts = [];
+          if (v.missingRed > 0) parts.push(`${v.missingRed} 个红球`);
+          if (v.missingBlue > 0) parts.push(`${v.missingBlue} 个蓝球`);
+          drawBtnText.textContent = `还差 ${parts.join('、')}`;
+        } else {
+          drawBtn.disabled = false; mobileBtn.disabled = false;
+          drawBtnText.textContent = '投入 2 体验金，立即模拟开奖';
+        }
+      },
+      renderDemoStage(tier) {
+        const exp = document.getElementById('demo-stage-explain');
+        const balls = document.getElementById('demo-stage-balls');
+        if (!exp || !balls) return;
+        if (!tier) {
+          exp.textContent = '点击或悬停右侧任意奖级，即可直观看到需要命中几个红球、几个蓝球。';
+          balls.innerHTML = '';
+          return;
+        }
+        exp.innerHTML = `<strong class="text-white">${tier.name}（${tier.badge}）：</strong>${tier.desc}`;
+        balls.innerHTML = '';
+        tier.demoRed.forEach(n => {
+          const el = document.createElement('span');
+          el.className = 'sphere-3d sphere-red w-8 h-8 text-[11px] font-extrabold mono-num';
+          el.textContent = pad2(n);
+          balls.appendChild(el);
+        });
+        if (tier.demoBlue !== null) {
+          const b = document.createElement('span');
+          b.className = 'sphere-3d sphere-blue w-8 h-8 text-[11px] font-extrabold mono-num';
+          b.textContent = pad2(tier.demoBlue);
+          balls.appendChild(b);
+        }
+      },
+      renderPrizeCards() {
+        const lowBox = document.getElementById('prize-group-low');
+        const highBox = document.getElementById('prize-group-high');
+        lowBox.innerHTML = ''; highBox.innerHTML = '';
+        SSQ_CONFIG.prizeTiers.forEach(tier => {
+          const card = document.createElement('button');
+          card.type = 'button'; card.dataset.tierId = tier.id;
+          const active = AppState.activeDemoTierId === tier.id;
+          card.className = `w-full text-left p-2.5 rounded-xl border transition flex items-center justify-between gap-2 ${
+            active ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-300' : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100'
+          }`;
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-extrabold text-slate-900">${tier.name}</span>
+                <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 mono-num">${tier.badge}</span>
+              </div>
+              <div class="text-[11px] text-slate-500 mt-0.5">${tier.desc}</div>
+            </div>
+            <span class="text-[11px] font-bold text-blue-600 shrink-0">亮灯</span>
+          `;
+          (tier.group === 'low' ? lowBox : highBox).appendChild(card);
+        });
+      },
+      startDrawAnimation(draw, onComplete) {
+        const panel = document.getElementById('draw-stage-panel');
+        const row = document.getElementById('draw-balls-row');
+        const resultBox = document.getElementById('draw-result-box');
+        const title = document.getElementById('draw-stage-title');
+        const skipBtn = document.getElementById('btn-skip-draw');
+
+        panel.classList.remove('hidden');
+        resultBox.classList.add('hidden');
+        skipBtn.classList.remove('hidden');
+        title.textContent = '水晶球充能揭晓中...';
+        row.innerHTML = '';
+
+        const seq = [...draw.red.map(n => ({ num: n, type: 'red' })), { num: draw.blue, type: 'blue' }];
+        let step = 0;
+        if (AppState.drawTimer) clearInterval(AppState.drawTimer);
+        AppState.drawTimer = setInterval(() => {
+          if (step >= seq.length) {
+            clearInterval(AppState.drawTimer); AppState.drawTimer = null; onComplete(); return;
+          }
+          const item = seq[step];
+          const el = document.createElement('span');
+          el.className = `sphere-3d w-9 h-9 text-xs font-extrabold mono-num ${item.type === 'red' ? 'sphere-red' : 'sphere-blue'}`;
+          el.textContent = pad2(item.num);
+          row.appendChild(el);
+          SoundFx.reveal();
+          step++;
+        }, 620);
+      },
+      renderDrawSettlement(draw, evalRes) {
+        const panel = document.getElementById('draw-stage-panel');
+        const row = document.getElementById('draw-balls-row');
+        const resultBox = document.getElementById('draw-result-box');
+        const title = document.getElementById('draw-stage-title');
+        const skipBtn = document.getElementById('btn-skip-draw');
+        const hitTrans = document.getElementById('draw-hit-translation');
+        const headline = document.getElementById('draw-result-headline');
+        const sub = document.getElementById('draw-result-sub');
+
+        panel.classList.remove('hidden');
+        skipBtn.classList.add('hidden');
+        resultBox.classList.remove('hidden');
+        title.textContent = '本期模拟开奖结果';
+
+        row.innerHTML = '';
+        draw.red.forEach(n => {
+          const hit = evalRes.redHits.includes(n);
+          const el = document.createElement('span');
+          el.className = `sphere-3d sphere-red w-9 h-9 text-xs font-extrabold mono-num ${hit ? 'sphere-win-ring' : 'opacity-45'}`;
+          el.textContent = pad2(n);
+          row.appendChild(el);
+        });
+        const bEl = document.createElement('span');
+        bEl.className = `sphere-3d sphere-blue w-9 h-9 text-xs font-extrabold mono-num ${evalRes.blueHit ? 'sphere-win-ring' : 'opacity-45'}`;
+        bEl.textContent = pad2(draw.blue);
+        row.appendChild(bEl);
+
+        hitTrans.textContent = `命中统计：${evalRes.rCount} 红 + ${evalRes.bCount} 蓝 → ${evalRes.won ? evalRes.tier.name : '未中奖'}`;
+        if (evalRes.won) {
+          headline.innerHTML = `<span class="text-amber-300">🎉 恭喜！获得 ${evalRes.payout} 虚拟体验金</span>`;
+          sub.textContent = evalRes.tier.isFloating ? '现实中一/二等奖为奖池浮动均分。' : '已自动计入你的虚拟体验金钱包。';
+        } else {
+          headline.innerHTML = `<span class="text-slate-200">差一点！93% 的彩票都会停在这一步</span>`;
+          sub.textContent = `虽然未中奖，但在现实中这 ¥2 已为你贡献了 ${WalletService.getPublicWelfarePerBet()} 元社会公益金（36% 比例）。`;
+        }
+      },
+      renderBatchReport(report) {
+        document.getElementById('batch-result-empty').classList.add('hidden');
+        document.getElementById('batch-result-panel').classList.remove('hidden');
+        const sandboxBadge = document.getElementById('batch-sandbox-badge');
+        if (report.sandboxMode) {
+          sandboxBadge.textContent = '体验金不足，已自动为您启动免费沙盒压力测试（不扣钱包余额）';
+          sandboxBadge.classList.remove('hidden');
+        } else {
+          sandboxBadge.classList.add('hidden');
+        }
+
+        document.getElementById('holo-title-badge').textContent = `称号：${report.title}`;
+        document.getElementById('holo-roi-pill').textContent = `实测回报率 ${report.roi}%`;
+        document.getElementById('batch-stat-cost').textContent = `${report.count}期 / ${report.totalCost}币`;
+        document.getElementById('batch-stat-prize').textContent = `${report.totalPrize} 币`;
+        const netEl = document.getElementById('batch-stat-net');
+        netEl.textContent = `${report.netProfit >= 0 ? '+' : ''}${report.netProfit} 币`;
+        netEl.className = `text-sm font-extrabold mt-0.5 mono-num ${report.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        document.getElementById('batch-stat-wins').textContent = `${report.winCount} 次`;
+
+        const barsBox = document.getElementById('batch-distribution-bars');
+        barsBox.innerHTML = '';
+        SSQ_CONFIG.prizeTiers.forEach(tier => {
+          const cnt = report.tierCounts[tier.id] || 0;
+          const pct = Math.round((cnt / report.count) * 100);
+          const row = document.createElement('div');
+          row.className = 'flex items-center gap-3 text-xs';
+          row.innerHTML = `
+            <span class="w-14 font-bold text-slate-700 shrink-0">${tier.name}</span>
+            <div class="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+              <div class="h-full rounded-full ${cnt > 0 ? 'bg-rose-500' : 'bg-slate-200'}" style="width: ${Math.max(cnt > 0 ? 4 : 0, pct)}%"></div>
+            </div>
+            <span class="w-16 text-right font-semibold text-slate-600 mono-num">${cnt} 次</span>
+          `;
+          barsBox.appendChild(row);
+        });
+      },
+      renderHistory() {
+        const list = DataRepo.getHistory();
+        const box = document.getElementById('history-list');
+        if (list.length === 0) {
+          box.innerHTML = `<div class="text-slate-400 py-8 text-center">暂无开奖记录，快去试玩第一把吧！</div>`;
+          return;
+        }
+        box.innerHTML = '';
+        list.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2';
+          row.innerHTML = `
+            <div class="space-y-0.5 mono-num">
+              <div class="text-[11px] text-slate-400">${item.time} · 选 ${item.userRed.map(pad2).join(' ')} + ${pad2(item.userBlue)}</div>
+              <div class="text-[11px] text-slate-600">开 ${item.drawRed.map(pad2).join(' ')} + ${pad2(item.drawBlue)}</div>
+            </div>
+            <span class="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold ${item.won ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'}">
+              ${item.won ? `${item.tierName} +${item.payout}` : '未中奖'}
+            </span>
+          `;
+          box.appendChild(row);
+        });
+      },
+      renderAll() {
+        this.renderWallet();
+        this.renderBoardAndPreview();
+        this.renderPrizeCards();
+        this.renderHistory();
+      }
+    };
+
+    // =========================================================================
+    // 初始化与事件绑定
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+
+      // URL 分享参数载入（若有则直接切入试玩盘）
+      const shared = UrlParamParser.parseFromLocation();
+      if (shared) {
+        AppState.selectedRed = shared.red;
+        AppState.selectedBlue = shared.blue;
+        TrialFlowMachine.switchTab('play');
+        UI.toast('已载入好友分享的同款幸运号！', 'emerald');
+      }
+
+      // 导航切换 & 跳过教程
+      document.getElementById('nav-tab-story').addEventListener('click', () => TrialFlowMachine.switchTab('story'));
+      document.getElementById('nav-tab-play').addEventListener('click', () => TrialFlowMachine.switchTab('play'));
+      document.getElementById('btn-skip-story').addEventListener('click', () => TrialFlowMachine.switchTab('play'));
+      document.getElementById('btn-enter-lab').addEventListener('click', () => TrialFlowMachine.switchTab('play'));
+
+      // 破冰引导
+      const banner = document.getElementById('onboarding-banner');
+      if (DataRepo.isOnboardingSeen()) banner.classList.add('hidden');
+      document.getElementById('btn-dismiss-onboarding').addEventListener('click', () => {
+        DataRepo.markOnboardingSeen();
+        banner.classList.add('hidden');
+      });
+
+      // 三幕故事互动解锁逻辑
+      document.getElementById('btn-act1-blue').addEventListener('click', ev => {
+        const btn = ev.currentTarget;
+        btn.className = 'sphere-3d sphere-blue w-12 h-12 text-sm font-extrabold mono-num shrink-0';
+        SparkFx.burst(ev.clientX, ev.clientY, '#2563eb');
+        SoundFx.win();
+        document.getElementById('act1-badge').textContent = '已点亮 ✓';
+        document.getElementById('act1-feedback').innerHTML = '<strong class="text-blue-700">命中 08 号蓝球！</strong>恭喜触发六等奖（+5 元保底时空），第 2 幕已解锁。';
+        if (!AppState.act1Done) {
+          AppState.act1Done = true;
+          const act2 = document.getElementById('story-act-2');
+          act2.classList.remove('opacity-60');
+          act2.classList.add('lab-card-hover');
+          document.getElementById('act2-badge').textContent = '已解锁';
+          document.getElementById('act2-probe-slider').disabled = false;
+        }
+      });
+
+      document.getElementById('act2-probe-slider').addEventListener('input', ev => {
+        const tierId = Number(ev.target.value);
+        const info = SSQ_CONFIG.cosmicAnalogies[tierId];
+        document.getElementById('act2-probe-readout').innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-300">${info.title}</span>
+            <span class="mono-num text-slate-300">${info.odds}</span>
+          </div>
+          <p class="text-slate-300 leading-relaxed">${info.text}</p>
+        `;
+        if (!AppState.act2Done) {
+          AppState.act2Done = true;
+          document.getElementById('act2-badge').textContent = '已探索 ✓';
+          const act3 = document.getElementById('story-act-3');
+          act3.classList.remove('opacity-60');
+          act3.classList.add('lab-card-hover');
+          document.getElementById('act3-badge').textContent = '已解锁';
+          document.getElementById('act3-compound-slider').disabled = false;
+        }
+      });
+
+      document.getElementById('act3-compound-slider').addEventListener('input', ev => {
+        const r = Number(ev.target.value);
+        const bets = LotteryRuleEngine.comb(r, 6);
+        document.getElementById('act3-red-num').textContent = r;
+        document.getElementById('act3-bets').textContent = bets;
+        document.getElementById('act3-cost').textContent = bets * 2;
+      });
+
+      // 球盘事件委托
+      document.getElementById('red-ball-grid').addEventListener('click', e => {
+        const btn = e.target.closest('button[data-red]');
+        if (btn) TrialFlowMachine.toggleRed(Number(btn.dataset.red), e);
+      });
+      document.getElementById('blue-ball-grid').addEventListener('click', e => {
+        const btn = e.target.closest('button[data-blue]');
+        if (btn) TrialFlowMachine.toggleBlue(Number(btn.dataset.blue), e);
+      });
+
+      // 选号控制与开奖
+      document.getElementById('btn-quick-pick').addEventListener('click', () => TrialFlowMachine.quickPick());
+      document.getElementById('btn-clear-board').addEventListener('click', () => TrialFlowMachine.clearBoard());
+      document.getElementById('btn-start-draw').addEventListener('click', () => TrialFlowMachine.startDraw());
+      document.getElementById('btn-mobile-draw').addEventListener('click', () => {
+        TrialFlowMachine.goToPlayStep(2);
+        TrialFlowMachine.startDraw();
+      });
+      document.getElementById('btn-skip-draw').addEventListener('click', () => TrialFlowMachine.skipDrawAnimation());
+
+      // 奖级科普亮灯
+      const handleTierEnter = e => {
+        const card = e.target.closest('button[data-tier-id]');
+        if (card) DemoHighlightFlow.activate(Number(card.dataset.tierId));
+      };
+      const handleTierLeave = () => DemoHighlightFlow.restore();
+      ['prize-group-low', 'prize-group-high'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('mouseover', handleTierEnter);
+        el.addEventListener('mouseleave', handleTierLeave);
+        el.addEventListener('click', handleTierEnter);
+      });
+      document.getElementById('btn-clear-demo').addEventListener('click', () => DemoHighlightFlow.restore());
+
+      // 钱包、音效、百科
+      document.getElementById('btn-refill-wallet').addEventListener('click', () => {
+        WalletService.refill(); UI.renderWallet(); UI.toast('已免费重置为 100 虚拟体验金！', 'emerald');
+      });
+      document.getElementById('btn-sound-toggle').addEventListener('click', e => {
+        const on = SoundFx.toggle();
+        e.currentTarget.innerHTML = `<i data-lucide="${on ? 'volume-2' : 'volume-x'}" class="w-4 h-4"></i>`;
+        if (window.lucide) window.lucide.createIcons();
+      });
+      const wikiModal = document.getElementById('wiki-modal');
+      document.getElementById('btn-open-wiki').addEventListener('click', () => wikiModal.classList.remove('hidden'));
+      document.getElementById('btn-close-wiki').addEventListener('click', () => wikiModal.classList.add('hidden'));
+      document.getElementById('btn-close-wiki-bottom').addEventListener('click', () => wikiModal.classList.add('hidden'));
+
+      // 分享链接
+      document.getElementById('btn-copy-share').addEventListener('click', () => {
+        const check = LotteryRuleEngine.validateSingleBet(AppState.selectedRed, AppState.selectedBlue);
+        if (!check.valid) { UI.toast('选满 6 红 + 1 蓝后才能生成分享链接哦', 'amber'); return; }
+        const url = `${window.location.origin}${window.location.pathname}?r=${AppState.selectedRed.map(pad2).join(',')}&b=${pad2(AppState.selectedBlue)}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(() => UI.toast('已复制选号分享链接！', 'emerald')).catch(() => fallbackCopy(url));
+        } else fallbackCopy(url);
+        function fallbackCopy(text) {
+          const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+          try { document.execCommand('copy'); UI.toast('已复制选号分享链接！', 'emerald'); } catch (e) { UI.toast('复制失败，请手动复制地址栏', 'amber'); }
+          ta.remove();
+        }
+      });
+
+      // Holo 战绩卡鼠标/触控 3D 倾斜
+      const holoCard = document.getElementById('holo-card');
+      const tiltCard = (clientX, clientY) => {
+        const rect = holoCard.getBoundingClientRect();
+        const x = (clientX - rect.left) / rect.width;
+        const y = (clientY - rect.top) / rect.height;
+        holoCard.style.setProperty('--mx', `${x * 100}%`);
+        holoCard.style.setProperty('--my', `${y * 100}%`);
+        holoCard.style.transform = `perspective(800px) rotateX(${(0.5 - y) * 8}deg) rotateY(${(x - 0.5) * 8}deg)`;
+      };
+      holoCard.addEventListener('mousemove', e => tiltCard(e.clientX, e.clientY));
+      holoCard.addEventListener('touchmove', e => { if (e.touches[0]) tiltCard(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+      holoCard.addEventListener('mouseleave', () => { holoCard.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg)'; });
+
+      // 多期模拟 & 清空历史
+      document.getElementById('btn-batch-50').addEventListener('click', () => BatchTestFlow.run(50));
+      document.getElementById('btn-batch-100').addEventListener('click', () => BatchTestFlow.run(100));
+      document.getElementById('btn-batch-50-inline').addEventListener('click', () => BatchTestFlow.run(50));
+      document.getElementById('btn-batch-100-inline').addEventListener('click', () => BatchTestFlow.run(100));
+      document.getElementById('btn-clear-history').addEventListener('click', () => {
+        DataRepo.clearHistory(); UI.renderHistory(); UI.toast('已清空本地试玩记录');
+      });
+
+      UI.renderAll();
+    });
+  </script>
+</body>
+</html>
