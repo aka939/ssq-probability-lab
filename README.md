@@ -24,14 +24,19 @@
 
 ```text
 .
-├── index.html   # 纯前端单文件应用（含全部 HTML / CSS / JS 逻辑）
-└── README.md    # 项目说明文档
+├── index.html                    # 单页应用（HTML / CSS / JS 全部内联）
+├── README.md                     # 项目说明文档
+└── vendor/                       # 本地化的第三方依赖，无需联网
+    ├── tailwindcss-3.4.17.js     # Tailwind Play CDN 运行时（本地版）
+    ├── chart.umd.min.js          # Chart.js 4.4.1
+    └── confetti.browser.min.js   # canvas-confetti 1.9.3
 ```
 
 ## 快速部署上线
 
-本项目为纯前端静态页面，无需后端服务或构建步骤：
+本项目为纯前端静态页面，无需后端服务或构建步骤；**三个第三方依赖已全部本地化到 `vendor/`，断网也能完整运行**（选号、摇奖、音效、百期图表均可用）：
 
+- **本地离线**：直接双击 `index.html`（`file://`）打开即可，无需网络、无需起服务。
 - **GitHub Pages**：将本仓库上传至 GitHub 后，进入 `Settings → Pages`，选择 `Deploy from a branch`（`main` 分支根目录 `/`）即可生成免费 HTTPS 链接。
 - **腾讯云 EdgeOne Pages**：在腾讯云控制台进入 `EdgeOne → Pages`，直接上传本文件夹或关联本 GitHub 仓库，输出目录填 `.` 即可免费部署并获得全球加速域名。
 

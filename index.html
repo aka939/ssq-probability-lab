@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>双色球概率实验室 · 1 / 17,721,088</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="vendor/tailwindcss-3.4.17.js"></script>
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/confetti.browser.min.js"></script>
   <style>
     :root {
       color-scheme: light;
@@ -1484,24 +1484,36 @@
 
         const ctx = document.getElementById('sim100-chart').getContext('2d');
         if (state.sim100Chart) state.sim100Chart.destroy();
-        state.sim100Chart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: ['一等奖', '二等奖', '三等奖', '四等奖', '五等奖', '六等奖'],
-            datasets: [
-              { label: '100期实测命中', data: [simHits[1], simHits[2], simHits[3], simHits[4], simHits[5], simHits[6]], backgroundColor: 'rgba(244, 63, 94, 0.85)', borderRadius: 5 },
-              { label: '100期理论期望', data: [0.0000056, 0.000085, 0.00091, 0.043, 0.776, 5.889], backgroundColor: 'rgba(59, 130, 246, 0.7)', borderRadius: 5 }
-            ]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#334155' } } },
-            scales: {
-              x: { ticks: { color: '#475569' }, grid: { color: 'rgba(15,23,42,0.05)' } },
-              y: { beginAtZero: true, ticks: { precision: 0, color: '#475569' }, grid: { color: 'rgba(15,23,42,0.06)' } }
+        if (typeof Chart === 'function') {
+          state.sim100Chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['一等奖', '二等奖', '三等奖', '四等奖', '五等奖', '六等奖'],
+              datasets: [
+                { label: '100期实测命中', data: [simHits[1], simHits[2], simHits[3], simHits[4], simHits[5], simHits[6]], backgroundColor: 'rgba(244, 63, 94, 0.85)', borderRadius: 5 },
+                { label: '100期理论期望', data: [0.0000056, 0.000085, 0.00091, 0.043, 0.776, 5.889], backgroundColor: 'rgba(59, 130, 246, 0.7)', borderRadius: 5 }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { labels: { color: '#334155' } } },
+              scales: {
+                x: { ticks: { color: '#475569' }, grid: { color: 'rgba(15,23,42,0.05)' } },
+                y: { beginAtZero: true, ticks: { precision: 0, color: '#475569' }, grid: { color: 'rgba(15,23,42,0.06)' } }
+              }
             }
+          });
+        } else {
+          const fallbackCanvas = document.getElementById('sim100-chart');
+          if (fallbackCanvas && fallbackCanvas.getContext) {
+            const fc = fallbackCanvas.getContext('2d');
+            fc.clearRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+            fc.fillStyle = '#71717a';
+            fc.font = '14px sans-serif';
+            fc.textAlign = 'center';
+            fc.fillText('图表组件未加载：请确认 vendor/chart.umd.min.js 存在', fallbackCanvas.width / 2, fallbackCanvas.height / 2);
           }
-        });
+        }
 
         updateHeaderAndStatsUI();
         playSound('unlock');
